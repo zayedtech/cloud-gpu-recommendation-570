@@ -101,7 +101,7 @@ def print_table(results):
         row_str = "  ".join(f"{str(r.get(c,'—')):<{widths[c]}}" for c in cols)
         if r.get("_cost_od", float("inf")) == min(
                 x.get("_cost_od", float("inf")) for x in results):
-            row_str += "  ★ RECOMMENDED"
+            row_str += "   RECOMMENDED"
         print(row_str)
     print()
 
