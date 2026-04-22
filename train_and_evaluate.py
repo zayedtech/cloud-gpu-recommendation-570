@@ -10,24 +10,20 @@ def load_and_preprocess(csv_path: str):
     """Load synthetic benchmark CSV and engineer features."""
     df = pd.read_csv(csv_path)
 
-    # Encode categorical GPU names to integer IDs
     le = LabelEncoder()
     df["gpu_id"] = le.fit_transform(df["gpu_name"])
 
-    # Encode precision to ordinal (fp32=0, bf16=1, fp16=2 by throughput)
     prec_map = {"fp32": 0, "bf16": 1, "fp16": 2}
     df["precision_id"] = df["precision"].map(prec_map)
 
-    # Compute intensity proxy: params × steps / batch_size
     df["compute_load"] = (df["model_params"] * df["train_steps"]) / df["batch_size"]
 
-    # Log-scale compute load to compress the range
     df["log_compute_load"] = np.log1p(df["compute_load"])
 
     feat_cols = ["gpu_id", "log_compute_load", "vram_gb", "precision_id", "batch_size"]
     scaler = StandardScaler()
     X = scaler.fit_transform(df[feat_cols])
-    y = np.log1p(df["runtime_sec"].values)  # log-transform to compress range
+    y = np.log1p(df["runtime_sec"].values)  
 
     return X, y, le, scaler, df
 
@@ -42,7 +38,6 @@ def train_runtime_predictor(X, y):
     )
     model.fit(X_train, y_train)
 
-    # Predict in log space, convert back to seconds for MAPE
     y_pred_log = model.predict(X_test)
     y_pred = np.expm1(y_pred_log)
     y_test_orig = np.expm1(y_test)
@@ -52,7 +47,6 @@ def train_runtime_predictor(X, y):
     print(f"Test Median APE:  {np.median(ape):.2%}")
     print(f"Test samples: {len(y_test)}")
 
-    # Cross-validation for robustness
     cv_scores = cross_val_score(model, X, y, cv=5,
                                 scoring="neg_mean_absolute_percentage_error")
     print(f"CV MAPE (5-fold): {-cv_scores.mean():.2%} ± {cv_scores.std():.2%}")
