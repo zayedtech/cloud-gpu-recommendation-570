@@ -4,7 +4,6 @@ import pandas as pd
 import joblib
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-# GPU catalog: VRAM, on-demand price, spot price
 GPU_CATALOG = {
     "T4":      {"vram_gb": 16, "price_od": 0.35, "price_spot": 0.11},
     "A10G":    {"vram_gb": 24, "price_od": 0.75, "price_spot": 0.23},
@@ -40,7 +39,6 @@ def recommend(model_params_M, batch_size, steps, precision,
 
     rows, raw_features = [], []
     for gpu_name, specs in GPU_CATALOG.items():
-        # Feasibility check: VRAM
         if vram_needed > specs["vram_gb"]:
             rows.append({"GPU": gpu_name, "VRAM": f"{specs['vram_gb']}GB",
                          "Pred Runtime": "OOM", "$/hr (OD)": specs["price_od"],
@@ -51,7 +49,6 @@ def recommend(model_params_M, batch_size, steps, precision,
         raw_features.append(feat)
         rows.append({"GPU": gpu_name, "specs": specs, "_feat_idx": len(raw_features) - 1})
 
-    # Batch predict on feasible GPUs
     if raw_features:
         scaler = joblib.load("scaler.pkl")
         feat_cols = ["gpu_id", "log_compute_load", "vram_gb", "precision_id", "batch_size"]
@@ -68,7 +65,6 @@ def recommend(model_params_M, batch_size, steps, precision,
         runtime_sec = pred_sec[row["_feat_idx"]]
         runtime_hr = runtime_sec / 3600
 
-        # Feasibility: deadline
         feasible = True
         if deadline_hr and runtime_hr > deadline_hr:
             feasible = False
@@ -89,7 +85,6 @@ def recommend(model_params_M, batch_size, steps, precision,
             "_cost_spot":     cost_spot if feasible else float("inf"),
         })
 
-    # Sort by on-demand cost, feasible first
     results.sort(key=lambda r: r.get("_cost_od", float("inf")))
 
     return results
@@ -104,7 +99,6 @@ def print_table(results):
     print("  ".join("-" * widths[c] for c in cols))
     for r in results:
         row_str = "  ".join(f"{str(r.get(c,'—')):<{widths[c]}}" for c in cols)
-        # Mark cheapest feasible
         if r.get("_cost_od", float("inf")) == min(
                 x.get("_cost_od", float("inf")) for x in results):
             row_str += "  ★ RECOMMENDED"
