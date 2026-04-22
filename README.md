@@ -14,6 +14,7 @@ deadline constraints.
 | `benchmark_data.csv` | Generated benchmark dataset (4,309 rows across 7 GPU types) |
 | `runtime_model.pkl` | Trained model saved to disk |
 | `scaler.pkl` | Fitted StandardScaler saved to disk |
+| `analysis.py` | Computes feature importances, MAPE, and error distribution analysis |
 
 ## Dependencies
 
@@ -42,6 +43,14 @@ and `scaler.pkl` to disk. It also prints test MAPE and cross-validation results.
 ```bash
 python3 recommend.py --model-params 125 --batch-size 32 --steps 10000 --precision fp16 --deadline 6
 ```
+
+
+### Step 4 — Run the analysis
+```bash
+python3 analysis.py
+```
+Prints feature importances, overall MAPE, median APE, and error distribution on the test set.
+
 
 #### CLI Arguments
 
